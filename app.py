@@ -3,11 +3,10 @@ import datetime
 import random
 import string
 import hashlib
-import pandas as pd
-import matplotlib.pyplot as plt
 import base64
+import pandas as pd
 
-# Page configuration - THIS MUST BE THE FIRST STREAMLIT COMMAND
+# Page configuration
 st.set_page_config(
     page_title="Password Strength Meter", 
     page_icon="🔐", 
@@ -15,7 +14,7 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS for better styling
+# CSS
 st.markdown("""
 <style>
     .main-header {
@@ -27,9 +26,6 @@ st.markdown("""
         font-size: 1.5rem;
         color: #0D47A1;
         margin-top: 1rem;
-    }
-    .info-text {
-        color: #424242;
     }
     .password-strong {
         color: #2E7D32;
@@ -48,10 +44,33 @@ st.markdown("""
         border-radius: 5px;
         margin-bottom: 5px;
     }
+    .stat-box {
+        padding: 20px;
+        border-radius: 5px;
+        text-align: center;
+        margin: 5px;
+    }
+    .stat-number {
+        font-size: 24px;
+        font-weight: bold;
+    }
+    .stat-label {
+        font-size: 14px;
+    }
+    .bar {
+        height: 30px;
+        border-radius: 3px;
+        margin-bottom: 10px;
+    }
+    .bar-label {
+        padding: 5px;
+        color: white;
+        font-weight: bold;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize session state
+# Session state
 if 'history' not in st.session_state:
     st.session_state.history = []
 if 'tab' not in st.session_state:
@@ -86,7 +105,7 @@ def check_strength(password):
     
     return score, criteria
 
-# Function to get strength label
+# Function to get label
 def get_strength_label(score):
     if score >= 5:
         return "🟢 Strong", "password-strong"
@@ -95,7 +114,7 @@ def get_strength_label(score):
     else:
         return "🔴 Weak", "password-weak"
 
-# Function to check if password is a duplicate
+# Function to check if password is duplicate
 def is_duplicate(password):
     if 'history' not in st.session_state or not st.session_state.history:
         return False
@@ -345,7 +364,7 @@ elif selected_tab == "Password History":
     else:
         st.info("No passwords saved yet.")
 
-# Statistics Tab
+# Statistics Tab - Simplified without charts
 elif selected_tab == "Statistics":
     st.markdown("<h2 class='sub-header'>📊 Password Statistics</h2>", unsafe_allow_html=True)
     
@@ -356,7 +375,6 @@ elif selected_tab == "Statistics":
         
         # Calculate average score
         avg_score = sum(scores) / len(scores)
-        st.metric("Average Password Strength", f"{avg_score:.2f}/6")
         
         # Count by strength category
         strength_counts = {
@@ -365,60 +383,159 @@ elif selected_tab == "Statistics":
             "Weak": sum(1 for s in strengths if s.startswith("🔴"))
         }
         
-        # Create pie chart
-        fig, ax = plt.subplots(figsize=(8, 6))
-        colors = ['#2E7D32', '#F9A825', '#C62828']
-        wedges, texts, autotexts = ax.pie(
-            strength_counts.values(), 
-            labels=strength_counts.keys(),
-            autopct='%1.1f%%',
-            startangle=90,
-            colors=colors
-        )
-        ax.set_title('Password Strength Distribution')
+        # Display stats in boxes
+        st.markdown("<h3>Password Strength Overview</h3>", unsafe_allow_html=True)
         
-        # Equal aspect ratio ensures that pie is drawn as a circle
-        ax.axis('equal')
-        st.pyplot(fig)
+        col1, col2, col3, col4 = st.columns(4)
         
-        # Password length distribution
+        with col1:
+            st.markdown(f"""
+            <div class='stat-box' style='background-color: #E3F2FD;'>
+                <div class='stat-number'>{len(st.session_state.history)}</div>
+                <div class='stat-label'>Total Passwords</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col2:
+            st.markdown(f"""
+            <div class='stat-box' style='background-color: #E8F5E9;'>
+                <div class='stat-number'>{strength_counts["Strong"]}</div>
+                <div class='stat-label'>Strong Passwords</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col3:
+            st.markdown(f"""
+            <div class='stat-box' style='background-color: #FFF8E1;'>
+                <div class='stat-number'>{strength_counts["Moderate"]}</div>
+                <div class='stat-label'>Moderate Passwords</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col4:
+            st.markdown(f"""
+            <div class='stat-box' style='background-color: #FFEBEE;'>
+                <div class='stat-number'>{strength_counts["Weak"]}</div>
+                <div class='stat-label'>Weak Passwords</div>
+            </div>
+            """, unsafe_allow_html=True)
+        
+        # Average score
+        st.markdown("<h3>Average Password Strength</h3>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div style='text-align: center; margin: 20px 0;'>
+            <div style='font-size: 36px; font-weight: bold;'>{avg_score:.2f}/6</div>
+            <div>Average Score</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Strength distribution as bars instead of pie chart
+        st.markdown("<h3>Password Strength Distribution</h3>", unsafe_allow_html=True)
+        
+        total = sum(strength_counts.values())
+        if total > 0:
+            for category, count in strength_counts.items():
+                percentage = (count / total) * 100
+                if category == "Strong":
+                    color = "#2E7D32"
+                elif category == "Moderate":
+                    color = "#F9A825"
+                else:
+                    color = "#C62828"
+                
+                st.markdown(f"""
+                <div>
+                    <div style='display: flex; align-items: center;'>
+                        <div style='width: 80px;'>{category}</div>
+                        <div class='bar' style='width: {percentage}%; background-color: {color};'>
+                            <div class='bar-label'>{count} ({percentage:.1f}%)</div>
+                        </div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Password length distribution as text
+        st.markdown("<h3>Password Length Information</h3>", unsafe_allow_html=True)
+        
         password_lengths = [len(entry['password']) for entry in st.session_state.history]
+        avg_length = sum(password_lengths) / len(password_lengths)
+        min_length = min(password_lengths)
+        max_length = max(password_lengths)
         
-        fig2, ax2 = plt.subplots(figsize=(10, 6))
-        ax2.hist(password_lengths, bins=range(min(password_lengths), max(password_lengths) + 2), alpha=0.7, color='#1976D2')
-        ax2.set_xlabel('Password Length')
-        ax2.set_ylabel('Frequency')
-        ax2.set_title('Password Length Distribution')
-        ax2.grid(axis='y', alpha=0.75)
+        col1, col2, col3 = st.columns(3)
         
-        # Add a vertical line for recommended minimum length
-        ax2.axvline(x=8, color='red', linestyle='--', label='Minimum Recommended (8)')
-        ax2.axvline(x=12, color='green', linestyle='--', label='Strong Recommended (12)')
-        ax2.legend()
+        with col1:
+            st.markdown(f"""
+            <div class='stat-box' style='background-color: #E3F2FD;'>
+                <div class='stat-number'>{avg_length:.1f}</div>
+                <div class='stat-label'>Average Length</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col2:
+            st.markdown(f"""
+            <div class='stat-box' style='background-color: #E3F2FD;'>
+                <div class='stat-number'>{min_length}</div>
+                <div class='stat-label'>Shortest Password</div>
+            </div>
+            """, unsafe_allow_html=True)
+            
+        with col3:
+            st.markdown(f"""
+            <div class='stat-box' style='background-color: #E3F2FD;'>
+                <div class='stat-number'>{max_length}</div>
+                <div class='stat-label'>Longest Password</div>
+            </div>
+            """, unsafe_allow_html=True)
         
-        st.pyplot(fig2)
+        # Length distribution as simple bars
+        length_counts = {}
+        for length in password_lengths:
+            if length in length_counts:
+                length_counts[length] += 1
+            else:
+                length_counts[length] = 1
         
-        # Password creation timeline
+        if length_counts:
+            st.markdown("<h3>Password Length Distribution</h3>", unsafe_allow_html=True)
+            
+            # Sort by length
+            sorted_lengths = sorted(length_counts.items())
+            max_count = max(length_counts.values())
+            
+            for length, count in sorted_lengths:
+                percentage = (count / max_count) * 100
+                st.markdown(f"""
+                <div style='display: flex; align-items: center; margin-bottom: 5px;'>
+                    <div style='width: 80px;'>{length} chars</div>
+                    <div style='background-color: #1976D2; width: {percentage}%; height: 20px; border-radius: 3px;'>
+                        <div style='color: white; padding: 0 5px;'>{count}</div>
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        
+        # Recent password strengths (instead of timeline)
         if len(st.session_state.history) > 1:
-            try:
-                # Convert timestamps to datetime objects
-                timestamps = [datetime.datetime.strptime(entry['timestamp'], "%Y-%m-%d %H:%M:%S") for entry in st.session_state.history]
+            st.markdown("<h3>Recent Password Strengths</h3>", unsafe_allow_html=True)
+            
+            # Get the 5 most recent passwords
+            recent_entries = st.session_state.history[-5:][::-1]
+            
+            for entry in recent_entries:
+                if entry['strength'].startswith("🟢"):
+                    color = "#2E7D32"
+                elif entry['strength'].startswith("🟡"):
+                    color = "#F9A825"
+                else:
+                    color = "#C62828"
                 
-                # Create a timeline of password creation
-                fig3, ax3 = plt.subplots(figsize=(10, 6))
-                ax3.plot(timestamps, scores, marker='o', linestyle='-', color='#0D47A1')
-                ax3.set_xlabel('Date')
-                ax3.set_ylabel('Password Strength Score')
-                ax3.set_title('Password Strength Over Time')
-                ax3.grid(True, alpha=0.3)
-                
-                # Rotate date labels for better readability
-                plt.xticks(rotation=45)
-                plt.tight_layout()
-                
-                st.pyplot(fig3)
-            except Exception as e:
-                st.error(f"Error creating timeline: {e}")
+                st.markdown(f"""
+                <div style='display: flex; margin-bottom: 10px;'>
+                    <div style='width: 200px; overflow: hidden; text-overflow: ellipsis;'>{entry['account']}</div>
+                    <div style='width: 150px;'>{entry['timestamp']}</div>
+                    <div style='color: {color}; font-weight: bold;'>{entry['strength']}</div>
+                </div>
+                """, unsafe_allow_html=True)
     else:
         st.info("No password data available for statistics. Save some passwords first!")
 
