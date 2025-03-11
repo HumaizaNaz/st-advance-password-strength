@@ -316,7 +316,7 @@ elif selected_tab == "Generate Password":
                         "score": score,
                         "timestamp": timestamp
                     })
-                    st.success(f"✅ Password saved successfully!")
+                    st.success("✅ Password saved successfully!")
 
 # Password History Tab
 elif selected_tab == "Password History":
